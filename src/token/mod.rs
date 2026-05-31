@@ -159,9 +159,11 @@ mod tests {
         assert_eq!(plain, plain2, "fixed hostname + seed is deterministic");
 
         // A different hostname changes the token.
-        let other_site =
-            mint_fresh(&opts(fp, "login.example.com", false), &mut StdRng::seed_from_u64(1))
-                .unwrap();
+        let other_site = mint_fresh(
+            &opts(fp, "login.example.com", false),
+            &mut StdRng::seed_from_u64(1),
+        )
+        .unwrap();
         assert_ne!(plain, other_site, "hostname must change the token");
 
         // Jitter varies output across seeds but is reproducible per seed.
@@ -170,6 +172,9 @@ mod tests {
         let j2 = mint_fresh(&opts(fp, SITE, true), &mut StdRng::seed_from_u64(2)).unwrap();
         assert_eq!(j1, j1_again, "same seed → same jittered token");
         assert_ne!(j1, j2, "different seed → different jittered token");
-        assert_ne!(plain, j1, "jitter must change the token vs. the verbatim mint");
+        assert_ne!(
+            plain, j1,
+            "jitter must change the token vs. the verbatim mint"
+        );
     }
 }
