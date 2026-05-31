@@ -292,7 +292,11 @@ mod tests {
             ("ja-JP", "1970/3/1 0:00:00"),
         ];
         for (locale, expected) in cases {
-            assert_eq!(locale_date_string(locale).as_deref(), Some(expected), "{locale}");
+            assert_eq!(
+                locale_date_string(locale).as_deref(),
+                Some(expected),
+                "{locale}"
+            );
         }
         assert_eq!(locale_date_string("zz-ZZ"), None);
     }
@@ -300,7 +304,9 @@ mod tests {
     #[test]
     fn presets_are_consistent_and_distinct() {
         let base = chrome_148_macos();
-        let tags = ["en-US", "en-GB", "de-DE", "fr-FR", "it-IT", "es-ES", "ja-JP"];
+        let tags = [
+            "en-US", "en-GB", "de-DE", "fr-FR", "it-IT", "es-ES", "ja-JP",
+        ];
         let mut seen = std::collections::HashSet::new();
         for tag in tags {
             let p = LocaleProfile::preset(tag).unwrap();
