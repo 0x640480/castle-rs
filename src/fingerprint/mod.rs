@@ -1,11 +1,13 @@
 //! The typed browser-identity bundle and its fp_lists / ce encoders.
 
+mod context;
 mod devices;
 mod encode;
 mod part0;
 mod part4;
 mod part7;
 
+pub use context::{locale_date_string, Persona};
 pub use devices::{bundled_devices, chrome_148_macos, load_devices, random_bundled_device};
 
 use serde::{Deserialize, Serialize};

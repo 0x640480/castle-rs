@@ -16,7 +16,7 @@ use rand::Rng;
 
 use crate::error::Result;
 use crate::events::{self, FreshOptions};
-use crate::fingerprint::Fingerprint;
+use crate::fingerprint::{Fingerprint, Persona};
 
 /// Inputs to [`mint_fresh`].
 pub struct MintOptions<'a> {
@@ -32,6 +32,15 @@ pub struct MintOptions<'a> {
     pub ig: i64,
     /// Clock override in ms. `None` means the current system time.
     pub now_ms: Option<i64>,
+    /// Override `window.location.hostname` (the site the token is for).
+    /// `None` keeps the fingerprint's value.
+    pub hostname: Option<&'a str>,
+    /// Override the geo/locale persona. `None` keeps the fingerprint's values.
+    pub persona: Option<&'a Persona>,
+    /// When `true`, jitter the per-session timing/behavioral signals so each
+    /// minted token differs (see [`Fingerprint::jittered`]). `false` reproduces
+    /// the fingerprint verbatim.
+    pub jitter: bool,
 }
 
 /// Produces an `X-CRS-Req-Token` from a site fingerprint.
@@ -45,8 +54,22 @@ pub fn mint_fresh(opts: &MintOptions, rng: &mut impl Rng) -> Result<String> {
     // Equivalent to `new Date(init_time).getUTCMinutes()` for non-negative ms.
     let utc_minutes = (init_time / 60_000) % 60;
 
-    let fp_lists_hex = opts.fingerprint.encode_fp(init_time, utc_minutes);
-    let ce_hex = opts.fingerprint.encode_ce()?;
+    // Build the effective fingerprint: caller context (deterministic) then the
+    // jitter pass (the first RNG draws). With no context and `jitter` off this
+    // is a verbatim clone, so the output is byte-identical to the bundled fp.
+    let mut fp = opts.fingerprint.clone();
+    if let Some(persona) = opts.persona {
+        fp = fp.with_persona(persona);
+    }
+    if let Some(hostname) = opts.hostname {
+        fp = fp.with_hostname(hostname);
+    }
+    if opts.jitter {
+        fp = fp.jittered(rng);
+    }
+
+    let fp_lists_hex = fp.encode_fp(init_time, utc_minutes);
+    let ce_hex = fp.encode_ce()?;
     let e7_hex = events::fresh_events_hex(&FreshOptions::default(), rng)?;
     let inner_plain = assemble_inner_payload(&fp_lists_hex, &ce_hex, &e7_hex)?;
 
@@ -96,6 +119,9 @@ mod tests {
                 pk: "pk_xPQ5kRvjnzuTy24zZtig3eNMzspdJS92",
                 ig: 225,
                 now_ms: Some(1_700_000_999_000),
+                hostname: None,
+                persona: None,
+                jitter: false,
             },
             &mut rng,
         )
@@ -108,5 +134,41 @@ mod tests {
             "non-base64url char in token"
         );
         assert!(tok.len() >= 1000, "token suspiciously short: {}", tok.len());
+    }
+
+    fn opts<'a>(fp: &'a Fingerprint, hostname: Option<&'a str>, jitter: bool) -> MintOptions<'a> {
+        MintOptions {
+            cuid: "00112233445566778899aabbccddeeff",
+            fingerprint: fp,
+            init_time_ms: Some(1_700_000_000_000),
+            pk: "pk_xPQ5kRvjnzuTy24zZtig3eNMzspdJS92",
+            ig: 225,
+            now_ms: Some(1_700_000_999_000),
+            hostname,
+            persona: None,
+            jitter,
+        }
+    }
+
+    #[test]
+    fn context_and_jitter_change_the_token() {
+        let fp = chrome_148_macos();
+
+        // Hostname override changes the token (and the no-op default matches).
+        let plain = mint_fresh(&opts(fp, None, false), &mut StdRng::seed_from_u64(1)).unwrap();
+        let plain2 = mint_fresh(&opts(fp, None, false), &mut StdRng::seed_from_u64(1)).unwrap();
+        assert_eq!(plain, plain2, "no-context mint is deterministic for a seed");
+        let other_site =
+            mint_fresh(&opts(fp, Some("login.example.com"), false), &mut StdRng::seed_from_u64(1))
+                .unwrap();
+        assert_ne!(plain, other_site, "hostname override must change the token");
+
+        // Jitter varies output across seeds but is reproducible per seed.
+        let j1 = mint_fresh(&opts(fp, None, true), &mut StdRng::seed_from_u64(1)).unwrap();
+        let j1_again = mint_fresh(&opts(fp, None, true), &mut StdRng::seed_from_u64(1)).unwrap();
+        let j2 = mint_fresh(&opts(fp, None, true), &mut StdRng::seed_from_u64(2)).unwrap();
+        assert_eq!(j1, j1_again, "same seed → same jittered token");
+        assert_ne!(j1, j2, "different seed → different jittered token");
+        assert_ne!(plain, j1, "jitter must change the token vs. the verbatim mint");
     }
 }

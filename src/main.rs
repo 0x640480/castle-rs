@@ -25,6 +25,14 @@ struct Cli {
     /// Castle deployment integration group ID.
     #[arg(long)]
     ig: i64,
+
+    /// Override window.location.hostname (defaults to the bundled profile's site).
+    #[arg(long)]
+    hostname: Option<String>,
+
+    /// Jitter per-session timing/behavioral signals so each token differs.
+    #[arg(long, default_value_t = false)]
+    jitter: bool,
 }
 
 fn main() {
@@ -42,6 +50,9 @@ fn main() {
         pk: &cli.pk,
         ig: cli.ig,
         now_ms: None,
+        hostname: cli.hostname.as_deref(),
+        persona: None,
+        jitter: cli.jitter,
     });
 
     match result {
