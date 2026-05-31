@@ -23,10 +23,13 @@ let cuid = hex::encode(rand::random::<[u8; 16]>());
 let token = mint_fresh_default(&MintOptions {
     cuid: &cuid,
     fingerprint: fingerprint::chrome_148_macos(),
-    init_time_ms: None, // None => now - 4000ms
+    init_time_ms: None,   // None => now - 4000ms
     pk: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     ig: 225,
-    now_ms: None,       // None => current system time
+    now_ms: None,         // None => current system time
+    hostname: None,       // None => the fingerprint's bundled site
+    locale_profile: None, // None => the fingerprint's bundled locale
+    jitter: false,        // true => vary per-session signals each mint
 })?;
 // send `token` as the X-CRS-Req-Token request header
 ```
@@ -47,25 +50,60 @@ traits. Per-mint variation (the per-slot XXTEA ciphertexts keyed on
 the supplied RNG; pass your own via [`token::mint_fresh`] for reproducible
 output in tests.
 
+## Site, locale & jitter
+
+The bundled fingerprint is a single captured session (an en-US user on one
+site). Three opt-in `MintOptions` fields adapt it without editing the catalog —
+all default to "off", which reproduces the fingerprint verbatim:
+
+- **`hostname`** — overrides `window.location.hostname`, the site the token is
+  for. Set this when minting for a deployment other than the bundled profile's.
+- **`locale_profile`** — a coherent geo/locale bundle (IANA time zone + offset,
+  `navigator.language(s)`, `Intl` locale, voice language, and the derived
+  `localeDateString`). Use a preset or build your own:
+
+  ```rust
+  use castle_token::fingerprint::LocaleProfile;
+
+  let de = LocaleProfile::de_de();          // or ::en_us/_gb, ::fr_fr, ::it_it,
+                                            // ::es_es, ::ja_jp, or ::preset("de-DE")
+  // ...then in MintOptions: locale_profile: Some(&de)
+  let custom = LocaleProfile::new(
+      "en-CA", "America/Toronto", 300, 60,
+      vec!["en-CA".into(), "en".into(), "fr-CA".into()],
+  ); // None if the locale's date format isn't built in — set the field directly
+  ```
+
+- **`jitter`** — when `true`, the per-session timing/behavioral signals
+  (navigation timing, JS heap usage, render latency, canvas-perf ratio, and the
+  `ce` event timings) are varied each mint so no two tokens are byte-identical,
+  while every device-identity field stays fixed and consistent. Variation is
+  drawn from the supplied RNG, so a fixed seed is reproducible.
+
 ## CLI
 
 ```sh
 cargo run -- \
     --cuid 00112233445566778899aabbccddeeff \
     --pk pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
-    --ig 225
+    --ig 225 \
+    --hostname id.example.com \
+    --locale de-DE \
+    --jitter
 ```
 
 `--cuid` defaults to a fresh random value and `--init-time-ms` to `now-4000ms`;
-`--pk` and `--ig` are required.
+`--pk` and `--ig` are required. `--hostname`, `--locale` (one of the
+[`LocaleProfile`] presets), and `--jitter` are optional and map to the
+`MintOptions` fields above.
 
 ## Modules
 
 | Module | Purpose |
 |---|---|
 | `token` | Mint the `X-CRS-Req-Token` (public entry point). |
-| `fingerprint` | Typed browser-identity bundle + per-slot fp_lists encoders. Embeds `devices.json`. |
-| `ce` | Typed encoder/decoder for the `ce` event-stream blob. |
+| `fingerprint` | Typed browser-identity bundle + per-slot fp_lists encoders, plus `LocaleProfile` presets and the per-mint jitter pass. Embeds `devices.json`. |
+| `ce` | Typed encoder/decoder for the header-less `ce` event-stream blob. |
 | `events` | `e7` (yh / hg / Fg) events generator. |
 | `codec` | base64url + MurmurHash3 x86_32 + `n_hex` helper. |
 | `xxtea` | XXTEA encrypt/decrypt with Castle's universal outer key. |
