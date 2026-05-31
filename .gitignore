@@ -6,3 +6,5 @@
 
 # rustfmt backups
 **/*.rs.bk
+.env
+.mcp.json

@@ -26,9 +26,9 @@ struct Cli {
     #[arg(long)]
     ig: i64,
 
-    /// Override window.location.hostname (defaults to the bundled profile's site).
+    /// window.location.hostname — the site the token is for (required).
     #[arg(long)]
-    hostname: Option<String>,
+    hostname: String,
 
     /// Locale preset: en-US, en-GB, de-DE, fr-FR, it-IT, es-ES, or ja-JP.
     #[arg(long)]
@@ -65,7 +65,7 @@ fn main() {
         pk: &cli.pk,
         ig: cli.ig,
         now_ms: None,
-        hostname: cli.hostname.as_deref(),
+        hostname: &cli.hostname,
         locale_profile: locale_profile.as_ref(),
         jitter: cli.jitter,
     });

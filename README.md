@@ -26,10 +26,10 @@ let token = mint_fresh_default(&MintOptions {
     init_time_ms: None,   // None => now - 4000ms
     pk: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     ig: 225,
-    now_ms: None,         // None => current system time
-    hostname: None,       // None => the fingerprint's bundled site
-    locale_profile: None, // None => the fingerprint's bundled locale
-    jitter: false,        // true => vary per-session signals each mint
+    now_ms: None,            // None => current system time
+    hostname: "id.fanatics.com", // required: the site the token is for
+    locale_profile: None,    // None => the fingerprint's bundled locale
+    jitter: false,           // true => vary per-session signals each mint
 })?;
 // send `token` as the X-CRS-Req-Token request header
 ```
@@ -43,6 +43,8 @@ You supply:
   `fingerprint::load_devices(path)`.
 - `pk` / `ig` — your deployment's public key and integration group ID, both
   visible in any captured token from your site.
+- `hostname` — `window.location.hostname`, the site the token is for. It is
+  deliberately not bundled in the fingerprint, so every mint must supply it.
 
 `fp_lists` and `ce` are rendered fresh per call from the fingerprint's typed
 traits. Per-mint variation (the per-slot XXTEA ciphertexts keyed on
@@ -52,12 +54,12 @@ output in tests.
 
 ## Site, locale & jitter
 
-The bundled fingerprint is a single captured session (an en-US user on one
-site). Three opt-in `MintOptions` fields adapt it without editing the catalog —
-all default to "off", which reproduces the fingerprint verbatim:
+**`hostname` is required** — `window.location.hostname` is the site the token is
+for, and it is deliberately not part of the bundled fingerprint, so every mint
+supplies it. The fingerprint is otherwise a single captured session (an en-US
+user); two more `MintOptions` fields adapt the rest, both opt-in and defaulting
+to "off", which reproduces the fingerprint verbatim:
 
-- **`hostname`** — overrides `window.location.hostname`, the site the token is
-  for. Set this when minting for a deployment other than the bundled profile's.
 - **`locale_profile`** — a coherent geo/locale bundle (IANA time zone + offset,
   `navigator.language(s)`, `Intl` locale, voice language, and the derived
   `localeDateString`). Use a preset or build your own:
@@ -87,14 +89,14 @@ cargo run -- \
     --cuid 00112233445566778899aabbccddeeff \
     --pk pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
     --ig 225 \
-    --hostname id.example.com \
+    --hostname id.fanatics.com \
     --locale de-DE \
     --jitter
 ```
 
 `--cuid` defaults to a fresh random value and `--init-time-ms` to `now-4000ms`;
-`--pk` and `--ig` are required. `--hostname`, `--locale` (one of the
-[`LocaleProfile`] presets), and `--jitter` are optional and map to the
+`--pk`, `--ig`, and `--hostname` are required. `--locale` (one of the
+[`LocaleProfile`] presets) and `--jitter` are optional and map to the
 `MintOptions` fields above.
 
 ## Modules
