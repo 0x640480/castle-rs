@@ -1,6 +1,47 @@
 //! Part-0 field encoders and their lookup tables (fp_lists slots 0/0–0/31).
 
 use super::encode::*;
+use super::Fingerprint;
+
+/// Assembles every part-0 slot (0/0–0/31) into encoded order.
+pub(super) fn encode(fp: &Fingerprint, init: i64) -> Vec<String> {
+    vec![
+        platform(&fp.platform, init),
+        vendor(&fp.vendor, init),
+        language(&fp.language, init),
+        device_memory(fp.device_memory),
+        screen(
+            fp.screen_width,
+            fp.screen_avail_width,
+            fp.screen_height,
+            fp.screen_avail_height,
+        ),
+        color_depth(fp.color_depth),
+        hardware_concurrency(fp.hardware_concurrency),
+        device_pixel_ratio(fp.device_pixel_ratio),
+        timezone(fp.timezone_offset, fp.summertime_offset),
+        mime_types(&fp.mime_types),
+        plugins(&fp.plugins),
+        navigator_bits(&fp.navigator_bits),
+        user_agent(&fp.user_agent, init),
+        canvas_hash(&fp.canvas_hash, init),
+        enumerate_devices(&fp.enumerate_devices_bits),
+        product_sub(&fp.product_sub, init),
+        canvas_hash2(&fp.canvas_hash2, init),
+        webgl_renderer(&fp.webgl_renderer, init),
+        locale_date_string(&fp.locale_date_string, init),
+        automation_bits(&fp.automation_bits),
+        eval_length(fp.eval_length),
+        max_call_stack_size(fp.max_call_stack_size),
+        call_stack_error_msg(&fp.call_stack_error_msg, init),
+        call_stack_error_name(&fp.call_stack_error_name, init),
+        call_stack_error_stack_len(fp.call_stack_error_stack_len),
+        touch_signature(&fp.touch_signature_hex),
+        property_error_msg(&fp.property_error_msg, init),
+        navigator_properties(&fp.navigator_properties),
+        can_play_type(&fp.can_play_type),
+    ]
+}
 
 pub const PLATFORM_LUT: &[&str] = &[
     "MacIntel",
