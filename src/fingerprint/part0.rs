@@ -96,11 +96,7 @@ pub fn language(language: &str, init: i64) -> String {
 
 /// Slot 0/3: navigator.deviceMemory.
 pub fn device_memory(device_memory: f64) -> String {
-    if device_memory > 25.5 {
-        case5(3, (device_memory + 0.5) as i64)
-    } else {
-        case6(3, device_memory)
-    }
+    case5_or_6(3, device_memory)
 }
 
 /// Slot 0/4: screen.width / availWidth / height / availHeight.
@@ -123,11 +119,7 @@ pub fn hardware_concurrency(hc: i64) -> String {
 
 /// Slot 0/7: window.devicePixelRatio.
 pub fn device_pixel_ratio(dpr: f64) -> String {
-    if dpr > 25.5 {
-        case5(7, (dpr + 0.5) as i64)
-    } else {
-        case6(7, dpr)
-    }
+    case5_or_6(7, dpr)
 }
 
 /// Slot 0/8: timezone offset and summertime difference (each `/15`).
