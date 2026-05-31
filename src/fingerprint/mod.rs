@@ -1,11 +1,13 @@
 //! The typed browser-identity bundle and its fp_lists / ce encoders.
 
+mod context;
 mod devices;
 mod encode;
 mod part0;
 mod part4;
 mod part7;
 
+pub use context::{locale_date_string, LocaleProfile};
 pub use devices::{bundled_devices, chrome_148_macos, load_devices, random_bundled_device};
 
 use serde::{Deserialize, Serialize};
@@ -200,6 +202,7 @@ mod tests {
         assert_eq!(fp.ua_platform, "macOS");
         assert_eq!(fp.object_json, "{}");
         assert!(fp.webgl_renderer.starts_with("ANGLE"));
-        assert!(!fp.default_ce_hex.is_empty());
+        // The bundled `ce` blob now ships as typed events, not raw hex.
+        assert_eq!(fp.default_ce_events.as_deref().map(<[_]>::len), Some(27));
     }
 }

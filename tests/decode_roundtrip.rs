@@ -29,6 +29,9 @@ fn minted_token_decodes_to_expected_fields() {
             pk: PK,
             ig: IG,
             now_ms: Some(NOW),
+            hostname: None,
+            locale_profile: None,
+            jitter: false,
         },
         &mut rng,
     )
