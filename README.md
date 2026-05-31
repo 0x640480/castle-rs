@@ -1,4 +1,4 @@
-# castle-token
+# castle-rs
 
 Rust generator for the `X-CRS-Req-Token` header minted by Castle's web SDK.
 The header carries an encrypted device fingerprint plus a behavioral signal
@@ -7,11 +7,7 @@ to login / account endpoints.
 
 The wire format is universal across Castle web customers — point the library at
 a different deployment by supplying its public key (`pk_…`) and integration
-group ID. HTTP-free.
-
-XXTEA is hand-rolled for exact output control; everything else leans on
-standard crates (`serde`, `base64`, `hex`, `rand`, `clap`, `thiserror`,
-`murmurhash3`).
+group ID.
 
 ## Quick start
 
