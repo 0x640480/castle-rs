@@ -26,11 +26,8 @@ pub struct Event {
     pub timestamp: Option<u8>,
 
     /// Registry-handler output (length per [`gb_handler_bytes`]); empty otherwise.
-    ///
-    /// Note: serde serializes this `Vec<u8>` as a JSON number array. The bundled
-    /// catalog ships typed events as `null`, so this never affects the wire
-    /// output in practice.
-    #[serde(default)]
+    /// Serialized as a JSON number array; omitted when empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub registry_bytes: Vec<u8>,
 }
 
@@ -82,14 +79,12 @@ pub const INPUT_TYPES: &[&str] = &[
     "select",
 ];
 
-/// Encodes events into the lowercase-hex `ce` blob. The 1-byte header flag is
-/// always 0; [`decode`] reads it back but no producer emits a non-zero value.
+/// Encodes events into the lowercase-hex `ce` blob: a header-less concatenation
+/// of self-delimiting events. The event count and total size are carried by the
+/// outer 2-byte length the payload assembler prepends (see
+/// [`crate::token`]'s `inner_payload`), so there is no inner header.
 pub fn encode(events: &[Event]) -> Result<String> {
-    let mut out = vec![
-        0,
-        ((events.len() >> 8) & 0xFF) as u8,
-        (events.len() & 0xFF) as u8,
-    ];
+    let mut out = Vec::new();
     for e in events {
         encode_event(e, &mut out)?;
     }
@@ -139,30 +134,20 @@ fn encode_event(e: &Event, out: &mut Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-/// Decodes a `ce` hex blob back into the header flag and typed events.
-pub fn decode(ce_hex: &str) -> Result<(u8, Vec<Event>)> {
+/// Decodes a header-less `ce` hex blob into its typed events, consuming the
+/// whole buffer (events are self-delimiting; the outer length bounds the run).
+pub fn decode(ce_hex: &str) -> Result<Vec<Event>> {
     let buf = hex::decode(ce_hex)?;
-    if buf.len() < 3 {
-        return Err(Error::CeDecode("too short for header".into()));
-    }
-    let zb = buf[0];
-    let count = ((buf[1] as usize) << 8) | buf[2] as usize;
-    let mut cursor = 3;
-    let mut events = Vec::with_capacity(count);
-    for i in 0..count {
+    let mut events = Vec::new();
+    let mut cursor = 0;
+    while cursor < buf.len() {
+        let i = events.len();
         let (e, n) =
             decode_event(&buf[cursor..]).map_err(|m| Error::CeDecode(format!("event {i}: {m}")))?;
         events.push(e);
         cursor += n;
     }
-    if cursor != buf.len() {
-        return Err(Error::CeDecode(format!(
-            "{} trailing bytes after {} events",
-            buf.len() - cursor,
-            count
-        )));
-    }
-    Ok((zb, events))
+    Ok(events)
 }
 
 fn decode_event(buf: &[u8]) -> std::result::Result<(Event, usize), String> {
@@ -233,8 +218,7 @@ mod tests {
             },
         ];
         let hex = encode(&events).unwrap();
-        let (zb, decoded) = decode(&hex).unwrap();
-        assert_eq!(zb, 0);
+        let decoded = decode(&hex).unwrap();
         assert_eq!(decoded, events);
     }
 }

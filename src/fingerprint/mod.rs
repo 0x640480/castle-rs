@@ -200,6 +200,7 @@ mod tests {
         assert_eq!(fp.ua_platform, "macOS");
         assert_eq!(fp.object_json, "{}");
         assert!(fp.webgl_renderer.starts_with("ANGLE"));
-        assert!(!fp.default_ce_hex.is_empty());
+        // The bundled `ce` blob now ships as typed events, not raw hex.
+        assert_eq!(fp.default_ce_events.as_deref().map(<[_]>::len), Some(27));
     }
 }
