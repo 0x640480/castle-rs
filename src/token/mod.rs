@@ -32,9 +32,9 @@ pub struct MintOptions<'a> {
     pub ig: i64,
     /// Clock override in ms. `None` means the current system time.
     pub now_ms: Option<i64>,
-    /// Override `window.location.hostname` (the site the token is for).
-    /// `None` keeps the fingerprint's value.
-    pub hostname: Option<&'a str>,
+    /// `window.location.hostname` — the site the token is for. Required; it is
+    /// not part of the bundled fingerprint.
+    pub hostname: &'a str,
     /// Override the geo/locale profile. `None` keeps the fingerprint's values.
     pub locale_profile: Option<&'a LocaleProfile>,
     /// When `true`, jitter the per-session timing/behavioral signals so each
@@ -54,16 +54,14 @@ pub fn mint_fresh(opts: &MintOptions, rng: &mut impl Rng) -> Result<String> {
     // Equivalent to `new Date(init_time).getUTCMinutes()` for non-negative ms.
     let utc_minutes = (init_time / 60_000) % 60;
 
-    // Build the effective fingerprint: caller context (deterministic) then the
-    // jitter pass (the first RNG draws). With no context and `jitter` off this
-    // is a verbatim clone, so the output is byte-identical to the bundled fp.
+    // Build the effective fingerprint: apply the required hostname and any
+    // optional locale profile (deterministic), then the jitter pass (the first
+    // RNG draws). The bundled fingerprint carries no hostname of its own.
     let mut fp = opts.fingerprint.clone();
     if let Some(profile) = opts.locale_profile {
         fp = fp.with_locale_profile(profile);
     }
-    if let Some(hostname) = opts.hostname {
-        fp = fp.with_hostname(hostname);
-    }
+    fp = fp.with_hostname(opts.hostname);
     if opts.jitter {
         fp = fp.jittered(rng);
     }
@@ -119,7 +117,7 @@ mod tests {
                 pk: "pk_xPQ5kRvjnzuTy24zZtig3eNMzspdJS92",
                 ig: 225,
                 now_ms: Some(1_700_000_999_000),
-                hostname: None,
+                hostname: "id.fanatics.com",
                 locale_profile: None,
                 jitter: false,
             },
@@ -136,7 +134,7 @@ mod tests {
         assert!(tok.len() >= 1000, "token suspiciously short: {}", tok.len());
     }
 
-    fn opts<'a>(fp: &'a Fingerprint, hostname: Option<&'a str>, jitter: bool) -> MintOptions<'a> {
+    fn opts<'a>(fp: &'a Fingerprint, hostname: &'a str, jitter: bool) -> MintOptions<'a> {
         MintOptions {
             cuid: "00112233445566778899aabbccddeeff",
             fingerprint: fp,
@@ -153,20 +151,23 @@ mod tests {
     #[test]
     fn context_and_jitter_change_the_token() {
         let fp = chrome_148_macos();
+        const SITE: &str = "id.fanatics.com";
 
-        // Hostname override changes the token (and the no-op default matches).
-        let plain = mint_fresh(&opts(fp, None, false), &mut StdRng::seed_from_u64(1)).unwrap();
-        let plain2 = mint_fresh(&opts(fp, None, false), &mut StdRng::seed_from_u64(1)).unwrap();
-        assert_eq!(plain, plain2, "no-context mint is deterministic for a seed");
+        // Deterministic for a fixed (hostname, seed).
+        let plain = mint_fresh(&opts(fp, SITE, false), &mut StdRng::seed_from_u64(1)).unwrap();
+        let plain2 = mint_fresh(&opts(fp, SITE, false), &mut StdRng::seed_from_u64(1)).unwrap();
+        assert_eq!(plain, plain2, "fixed hostname + seed is deterministic");
+
+        // A different hostname changes the token.
         let other_site =
-            mint_fresh(&opts(fp, Some("login.example.com"), false), &mut StdRng::seed_from_u64(1))
+            mint_fresh(&opts(fp, "login.example.com", false), &mut StdRng::seed_from_u64(1))
                 .unwrap();
-        assert_ne!(plain, other_site, "hostname override must change the token");
+        assert_ne!(plain, other_site, "hostname must change the token");
 
         // Jitter varies output across seeds but is reproducible per seed.
-        let j1 = mint_fresh(&opts(fp, None, true), &mut StdRng::seed_from_u64(1)).unwrap();
-        let j1_again = mint_fresh(&opts(fp, None, true), &mut StdRng::seed_from_u64(1)).unwrap();
-        let j2 = mint_fresh(&opts(fp, None, true), &mut StdRng::seed_from_u64(2)).unwrap();
+        let j1 = mint_fresh(&opts(fp, SITE, true), &mut StdRng::seed_from_u64(1)).unwrap();
+        let j1_again = mint_fresh(&opts(fp, SITE, true), &mut StdRng::seed_from_u64(1)).unwrap();
+        let j2 = mint_fresh(&opts(fp, SITE, true), &mut StdRng::seed_from_u64(2)).unwrap();
         assert_eq!(j1, j1_again, "same seed → same jittered token");
         assert_ne!(j1, j2, "different seed → different jittered token");
         assert_ne!(plain, j1, "jitter must change the token vs. the verbatim mint");

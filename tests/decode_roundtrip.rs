@@ -16,6 +16,7 @@ const PK: &str = "pk_xPQ5kRvjnzuTy24zZtig3eNMzspdJS92";
 const IG: i64 = 225;
 const INIT: i64 = 1_700_000_000_000;
 const NOW: i64 = 1_700_000_999_000;
+const HOST: &str = "id.fanatics.com";
 
 #[test]
 fn minted_token_decodes_to_expected_fields() {
@@ -29,7 +30,7 @@ fn minted_token_decodes_to_expected_fields() {
             pk: PK,
             ig: IG,
             now_ms: Some(NOW),
-            hostname: None,
+            hostname: HOST,
             locale_profile: None,
             jitter: false,
         },
@@ -69,8 +70,9 @@ fn minted_token_decodes_to_expected_fields() {
     let inner_payload_plain = xor_with_rotated_key(inner_xored, v0, 4, &v0[3..4]);
 
     // The inner payload begins with fp_lists; it must match encode_fp exactly.
+    // mint_fresh always applies the (required) hostname, so reproduce that here.
     let utc_minutes = (INIT / 60_000) % 60;
-    let fp_lists = fp.encode_fp(INIT, utc_minutes);
+    let fp_lists = fp.with_hostname(HOST).encode_fp(INIT, utc_minutes);
     assert!(
         inner_payload_plain.starts_with(&fp_lists),
         "recovered inner payload does not start with the expected fp_lists"

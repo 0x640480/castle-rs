@@ -95,7 +95,10 @@ pub struct Fingerprint {
     pub ua_platform_version: String, // (7/1)
     pub browser_brand: String, // (7/2)
     pub time_diff: i64,        // (7/3)
-    pub hostname: String,      // (7/5)
+    /// `window.location.hostname` (slot 7/5). Not part of the device catalog —
+    /// supplied per mint via [`crate::token::MintOptions::hostname`].
+    #[serde(skip)]
+    pub hostname: String,
     #[serde(rename = "ObjectJSON")]
     pub object_json: String, // (7/6)
     pub bits46: Vec<bool>,     // (7/7)
