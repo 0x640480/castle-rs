@@ -8,3 +8,6 @@
 **/*.rs.bk
 .env
 .mcp.json
+
+# Large browser captures the wire format was reverse-engineered from
+*.har

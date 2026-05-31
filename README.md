@@ -1,6 +1,6 @@
 # castle-rs
 
-Rust generator for the `X-CRS-Req-Token` header minted by Castle's web SDK.
+Rust generator for the `X-Castle-Request-Token` header minted by Castle's web SDK.
 The header carries an encrypted device fingerprint plus a behavioral signal
 that Castle's risk engine validates server-side before letting requests through
 to login / account endpoints.
@@ -8,6 +8,20 @@ to login / account endpoints.
 The wire format is universal across Castle web customers — point the library at
 a different deployment by supplying its public key (`pk_…`) and integration
 group ID.
+
+Castle's default header name is `X-Castle-Request-Token`; individual deployments
+may rename it (Fanatics, for example, sends it as `X-CRS-Req-Token`) — send the
+token under whatever header your target site uses.
+
+## Targeted SDK
+
+This reproduces Castle's request-token SDK as reverse-engineered from a real
+browser capture: the Castle code bundled into `id.fanatics.com`'s
+`index-DWgwNW-w.js`, recorded under **Chrome 148.0.7778.168** (2026-05-15).
+Castle exposes no public SDK version string, so the captured **wire format is
+the contract** — it's pinned byte-for-byte by the golden tests
+(`encode_fp` / `encode_ce` and the decode round-trip). Regenerate the bundled
+profile from a fresh capture if Castle ships a format change.
 
 ## Quick start
 
@@ -27,7 +41,7 @@ let token = mint_fresh_default(&MintOptions {
     locale_profile: None,    // None => the fingerprint's bundled locale
     jitter: false,           // true => vary per-session signals each mint
 })?;
-// send `token` as the X-CRS-Req-Token request header
+// send `token` as the X-Castle-Request-Token request header
 ```
 
 You supply:
@@ -99,7 +113,7 @@ cargo run -- \
 
 | Module | Purpose |
 |---|---|
-| `token` | Mint the `X-CRS-Req-Token` (public entry point). |
+| `token` | Mint the `X-Castle-Request-Token` (public entry point). |
 | `fingerprint` | Typed browser-identity bundle + per-slot fp_lists encoders, plus `LocaleProfile` presets and the per-mint jitter pass. Embeds `devices.json`. |
 | `ce` | Typed encoder/decoder for the header-less `ce` event-stream blob. |
 | `events` | `e7` (yh / hg / Fg) events generator. |

@@ -1,4 +1,4 @@
-//! Generator for the `X-CRS-Req-Token` header minted by Castle's web SDK.
+//! Generator for the `X-Castle-Request-Token` header minted by Castle's web SDK.
 //!
 //! The header carries an encrypted device fingerprint plus a behavioral signal
 //! that Castle's risk engine validates server-side. This crate reproduces the
