@@ -2,7 +2,7 @@
 name = "castle-token"
 version = "0.1.0"
 edition = "2021"
-description = "Generator for the X-CRS-Req-Token header minted by Castle's web SDK (build d60)."
+description = "Generator for the X-Castle-Request-Token header minted by Castle's web SDK."
 license = "MIT"
 
 [lib]

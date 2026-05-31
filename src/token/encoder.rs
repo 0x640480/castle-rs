@@ -23,7 +23,7 @@ pub struct EncodeTokenInput<'a> {
     pub inner_payload_plain: &'a str,
 }
 
-/// Assembles the `X-CRS-Req-Token` from already-prepared fields:
+/// Assembles the `X-Castle-Request-Token` from already-prepared fields:
 ///
 /// ```text
 /// xor1  = v0 + xor_with_rotated(inner, v0[:4], v0[3])

@@ -1,4 +1,4 @@
-//! Minting the `X-CRS-Req-Token` and its building blocks.
+//! Minting the `X-Castle-Request-Token` and its building blocks.
 
 mod encoder;
 mod inner_payload;
@@ -43,7 +43,7 @@ pub struct MintOptions<'a> {
     pub jitter: bool,
 }
 
-/// Produces an `X-CRS-Req-Token` from a site fingerprint.
+/// Produces an `X-Castle-Request-Token` from a site fingerprint.
 ///
 /// fp_lists and `ce` are rendered fresh per call from the fingerprint's typed
 /// traits. Per-mint variation (the per-slot XXTEA ciphertexts keyed on `init_time_ms`,

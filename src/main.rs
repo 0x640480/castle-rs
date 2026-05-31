@@ -1,4 +1,4 @@
-//! CLI that mints an `X-CRS-Req-Token` using the bundled Chrome 148 macOS
+//! CLI that mints an `X-Castle-Request-Token` using the bundled Chrome 148 macOS
 //! profile and prints it to stdout.
 
 use clap::Parser;
@@ -6,7 +6,7 @@ use clap::Parser;
 use castle_token::fingerprint::{self, LocaleProfile};
 use castle_token::token::{mint_fresh_default, MintOptions};
 
-/// Mint an X-CRS-Req-Token using the bundled Chrome 148 macOS profile.
+/// Mint an X-Castle-Request-Token using the bundled Chrome 148 macOS profile.
 #[derive(Parser)]
 #[command(name = "castle-token", version, about)]
 struct Cli {
