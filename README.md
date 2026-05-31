@@ -13,16 +13,6 @@ Castle's default header name is `X-Castle-Request-Token`; individual deployments
 may rename it (Fanatics, for example, sends it as `X-CRS-Req-Token`) — send the
 token under whatever header your target site uses.
 
-## Targeted SDK
-
-This reproduces Castle's request-token SDK as reverse-engineered from a real
-browser capture: the Castle code bundled into `id.fanatics.com`'s
-`index-DWgwNW-w.js`, recorded under **Chrome 148.0.7778.168** (2026-05-15).
-Castle exposes no public SDK version string, so the captured **wire format is
-the contract** — it's pinned byte-for-byte by the golden tests
-(`encode_fp` / `encode_ce` and the decode round-trip). Regenerate the bundled
-profile from a fresh capture if Castle ships a format change.
-
 ## Quick start
 
 ```rust
