@@ -3,7 +3,7 @@
 
 use clap::Parser;
 
-use castle_token::fingerprint;
+use castle_token::fingerprint::{self, LocaleProfile};
 use castle_token::token::{mint_fresh_default, MintOptions};
 
 /// Mint an X-CRS-Req-Token using the bundled Chrome 148 macOS profile.
@@ -30,6 +30,10 @@ struct Cli {
     #[arg(long)]
     hostname: Option<String>,
 
+    /// Locale preset: en-US, en-GB, de-DE, fr-FR, it-IT, es-ES, or ja-JP.
+    #[arg(long)]
+    locale: Option<String>,
+
     /// Jitter per-session timing/behavioral signals so each token differs.
     #[arg(long, default_value_t = false)]
     jitter: bool,
@@ -43,6 +47,17 @@ fn main() {
         .unwrap_or_else(|| hex::encode(rand::random::<[u8; 16]>()));
     let init_time_ms = (cli.init_time_ms != 0).then_some(cli.init_time_ms);
 
+    let locale_profile = match cli.locale.as_deref() {
+        Some(tag) => match LocaleProfile::preset(tag) {
+            Some(profile) => Some(profile),
+            None => {
+                eprintln!("castle-token: unknown --locale preset '{tag}'");
+                std::process::exit(1);
+            }
+        },
+        None => None,
+    };
+
     let result = mint_fresh_default(&MintOptions {
         cuid: &cuid,
         fingerprint: fingerprint::chrome_148_macos(),
@@ -51,7 +66,7 @@ fn main() {
         ig: cli.ig,
         now_ms: None,
         hostname: cli.hostname.as_deref(),
-        persona: None,
+        locale_profile: locale_profile.as_ref(),
         jitter: cli.jitter,
     });
 

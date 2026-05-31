@@ -16,7 +16,7 @@ use rand::Rng;
 
 use crate::error::Result;
 use crate::events::{self, FreshOptions};
-use crate::fingerprint::{Fingerprint, Persona};
+use crate::fingerprint::{Fingerprint, LocaleProfile};
 
 /// Inputs to [`mint_fresh`].
 pub struct MintOptions<'a> {
@@ -35,8 +35,8 @@ pub struct MintOptions<'a> {
     /// Override `window.location.hostname` (the site the token is for).
     /// `None` keeps the fingerprint's value.
     pub hostname: Option<&'a str>,
-    /// Override the geo/locale persona. `None` keeps the fingerprint's values.
-    pub persona: Option<&'a Persona>,
+    /// Override the geo/locale profile. `None` keeps the fingerprint's values.
+    pub locale_profile: Option<&'a LocaleProfile>,
     /// When `true`, jitter the per-session timing/behavioral signals so each
     /// minted token differs (see [`Fingerprint::jittered`]). `false` reproduces
     /// the fingerprint verbatim.
@@ -58,8 +58,8 @@ pub fn mint_fresh(opts: &MintOptions, rng: &mut impl Rng) -> Result<String> {
     // jitter pass (the first RNG draws). With no context and `jitter` off this
     // is a verbatim clone, so the output is byte-identical to the bundled fp.
     let mut fp = opts.fingerprint.clone();
-    if let Some(persona) = opts.persona {
-        fp = fp.with_persona(persona);
+    if let Some(profile) = opts.locale_profile {
+        fp = fp.with_locale_profile(profile);
     }
     if let Some(hostname) = opts.hostname {
         fp = fp.with_hostname(hostname);
@@ -120,7 +120,7 @@ mod tests {
                 ig: 225,
                 now_ms: Some(1_700_000_999_000),
                 hostname: None,
-                persona: None,
+                locale_profile: None,
                 jitter: false,
             },
             &mut rng,
@@ -145,7 +145,7 @@ mod tests {
             ig: 225,
             now_ms: Some(1_700_000_999_000),
             hostname,
-            persona: None,
+            locale_profile: None,
             jitter,
         }
     }

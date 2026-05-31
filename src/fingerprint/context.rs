@@ -1,4 +1,4 @@
-//! Per-mint dynamism for a [`Fingerprint`]: caller-supplied deployment/persona
+//! Per-mint dynamism for a [`Fingerprint`]: caller-supplied deployment/locale
 //! context (site hostname, geo/locale bundle) and a jitter pass for the
 //! timing/behavioral signals a real browser varies on every page load.
 //!
@@ -10,19 +10,22 @@ use rand::Rng;
 
 use super::Fingerprint;
 
-/// A coherent geo/locale persona: the navigator/`Intl` values that should match
+/// A coherent geo/locale bundle: the navigator/`Intl` values that should match
 /// the claimed user's region. Supply one via [`crate::token::MintOptions`] to
-/// mint for a different locale than the bundled profile's.
+/// mint for a different locale than the bundled profile's, or start from a
+/// preset like [`LocaleProfile::de_de`] and tweak the public fields.
 ///
 /// The fields must be mutually consistent (offset ↔ zone ↔ locale); prefer
-/// [`Persona::new`], which derives [`Persona::locale_date_string`] for you.
+/// [`LocaleProfile::new`], which derives [`locale_date_string`] for you.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Persona {
+pub struct LocaleProfile {
     /// IANA time zone, e.g. `"America/New_York"` (slot 4/1).
     pub time_zone: String,
-    /// `getTimezoneOffset()` in minutes, e.g. `300` for UTC−5 (slot 0/8).
+    /// `getTimezoneOffset()` in minutes (positive = behind UTC), e.g. `300` for
+    /// UTC−5, `-60` for UTC+1 (slot 0/8).
     pub timezone_offset: i64,
-    /// Standard-vs-summer offset difference in minutes (slot 0/8).
+    /// Standard-vs-summer offset difference in minutes (`60` for 1h DST, `0` for
+    /// zones without DST) (slot 0/8).
     pub summertime_offset: i64,
     /// `Intl.DateTimeFormat().resolvedOptions().locale`, e.g. `"en-US"` (slot 4/22).
     pub locale: String,
@@ -36,9 +39,9 @@ pub struct Persona {
     pub locale_date_string: String,
 }
 
-impl Persona {
-    /// Builds a persona, deriving [`Persona::locale_date_string`] from `locale`
-    /// and taking `language`/`voice_language` from the head of `languages`.
+impl LocaleProfile {
+    /// Builds a profile, deriving [`locale_date_string`] from `locale` and
+    /// taking `language`/`voice_language` from the head of `languages`.
     ///
     /// Returns `None` when the locale's date format is not known to this crate;
     /// construct the struct directly with an explicit `locale_date_string` then.
@@ -65,23 +68,62 @@ impl Persona {
         })
     }
 
-    /// The en-US / America/New_York persona — matches the bundled capture, so
-    /// applying it via [`Fingerprint::with_persona`] is a no-op.
-    pub fn en_us_new_york() -> Self {
-        Self::new(
-            "en-US",
-            "America/New_York",
-            300,
-            60,
-            vec!["en-US".to_string(), "en".to_string()],
-        )
-        .expect("en-US locale date format is supported")
+    /// Looks up a bundled preset by its `locale` tag (e.g. `"de-DE"`), or `None`
+    /// if there is no preset for it. See the `*_*` constructors for the full set.
+    pub fn preset(locale: &str) -> Option<Self> {
+        let p = match locale {
+            "en-US" => Self::en_us(),
+            "en-GB" => Self::en_gb(),
+            "de-DE" => Self::de_de(),
+            "fr-FR" => Self::fr_fr(),
+            "it-IT" => Self::it_it(),
+            "es-ES" => Self::es_es(),
+            "ja-JP" => Self::ja_jp(),
+            _ => return None,
+        };
+        Some(p)
+    }
+
+    /// en-US / America/New_York — matches the bundled capture, so applying it via
+    /// [`Fingerprint::with_locale_profile`] is a no-op.
+    pub fn en_us() -> Self {
+        Self::built("en-US", "America/New_York", 300, 60, &["en-US", "en"])
+    }
+    /// en-GB / Europe/London.
+    pub fn en_gb() -> Self {
+        Self::built("en-GB", "Europe/London", 0, 60, &["en-GB", "en"])
+    }
+    /// de-DE / Europe/Berlin.
+    pub fn de_de() -> Self {
+        Self::built("de-DE", "Europe/Berlin", -60, 60, &["de-DE", "de"])
+    }
+    /// fr-FR / Europe/Paris.
+    pub fn fr_fr() -> Self {
+        Self::built("fr-FR", "Europe/Paris", -60, 60, &["fr-FR", "fr"])
+    }
+    /// it-IT / Europe/Rome.
+    pub fn it_it() -> Self {
+        Self::built("it-IT", "Europe/Rome", -60, 60, &["it-IT", "it"])
+    }
+    /// es-ES / Europe/Madrid.
+    pub fn es_es() -> Self {
+        Self::built("es-ES", "Europe/Madrid", -60, 60, &["es-ES", "es"])
+    }
+    /// ja-JP / Asia/Tokyo (no DST).
+    pub fn ja_jp() -> Self {
+        Self::built("ja-JP", "Asia/Tokyo", -540, 0, &["ja-JP", "ja"])
+    }
+
+    fn built(locale: &str, tz: &str, offset: i64, dst: i64, langs: &[&str]) -> Self {
+        let languages = langs.iter().map(|s| s.to_string()).collect();
+        Self::new(locale, tz, offset, dst, languages)
+            .unwrap_or_else(|| panic!("preset locale {locale} has a known date format"))
     }
 }
 
-impl Default for Persona {
+impl Default for LocaleProfile {
     fn default() -> Self {
-        Self::en_us_new_york()
+        Self::en_us()
     }
 }
 
@@ -89,29 +131,75 @@ impl Default for Persona {
 ///
 /// The page constructs `new Date(1970, 2, 1)` (local time) and formats it with
 /// the default locale, so the result is the fixed wall-clock `1970-03-01
-/// 00:00:00` rendered in that locale's date/time format — it is **timezone
-/// independent**. Returns `None` for locales whose format this crate does not
-/// know (extend the match as needed).
+/// 00:00:00` rendered in that locale's date/time pattern — it is **timezone
+/// independent**. Values target modern Chrome/ICU; the exact string is
+/// ICU-version-sensitive, so verify against your target build for exotic
+/// locales (or set `locale_date_string` explicitly). Returns `None` for an
+/// unknown locale.
 pub fn locale_date_string(locale: &str) -> Option<String> {
-    let s = match locale {
-        "en-US" => "3/1/1970, 12:00:00 AM",
+    use Clock::{H12, H24};
+    use Order::{Dmy, Mdy, Ymd};
+
+    // (date-field order, date separator, zero-pad day/month, date↔time joiner, clock)
+    let f = match locale {
+        "en-US" => Fmt(Mdy, '/', false, ", ", H12),
+        "en-GB" => Fmt(Dmy, '/', true, ", ", H24 { pad_hour: true }),
+        "de-DE" => Fmt(Dmy, '.', false, ", ", H24 { pad_hour: true }),
+        "fr-FR" => Fmt(Dmy, '/', true, " ", H24 { pad_hour: true }),
+        "it-IT" => Fmt(Dmy, '/', true, ", ", H24 { pad_hour: true }),
+        "es-ES" => Fmt(Dmy, '/', false, ", ", H24 { pad_hour: false }),
+        "ja-JP" => Fmt(Ymd, '/', false, " ", H24 { pad_hour: false }),
         _ => return None,
     };
-    Some(s.to_string())
+    Some(f.render_march_1_1970())
+}
+
+enum Order {
+    Mdy,
+    Dmy,
+    Ymd,
+}
+
+enum Clock {
+    H12,
+    H24 { pad_hour: bool },
+}
+
+struct Fmt(Order, char, bool, &'static str, Clock);
+
+impl Fmt {
+    /// Renders the fixed `1970-03-01 00:00:00` wall-clock under this format.
+    fn render_march_1_1970(&self) -> String {
+        let Fmt(order, sep, pad, joiner, clock) = self;
+        let day = if *pad { "01" } else { "1" };
+        let month = if *pad { "03" } else { "3" };
+        let year = "1970";
+        let date = match order {
+            Order::Mdy => format!("{month}{sep}{day}{sep}{year}"),
+            Order::Dmy => format!("{day}{sep}{month}{sep}{year}"),
+            Order::Ymd => format!("{year}{sep}{month}{sep}{day}"),
+        };
+        let time = match clock {
+            Clock::H12 => "12:00:00 AM".to_string(),
+            Clock::H24 { pad_hour: true } => "00:00:00".to_string(),
+            Clock::H24 { pad_hour: false } => "0:00:00".to_string(),
+        };
+        format!("{date}{joiner}{time}")
+    }
 }
 
 impl Fingerprint {
-    /// Returns a clone with the geo/locale fields replaced by `persona`.
-    pub fn with_persona(&self, persona: &Persona) -> Fingerprint {
+    /// Returns a clone with the geo/locale fields replaced by `profile`.
+    pub fn with_locale_profile(&self, profile: &LocaleProfile) -> Fingerprint {
         let mut fp = self.clone();
-        fp.time_zone = persona.time_zone.clone();
-        fp.timezone_offset = persona.timezone_offset;
-        fp.summertime_offset = persona.summertime_offset;
-        fp.locale = persona.locale.clone();
-        fp.language = persona.language.clone();
-        fp.languages = persona.languages.clone();
-        fp.voice_language = persona.voice_language.clone();
-        fp.locale_date_string = persona.locale_date_string.clone();
+        fp.time_zone = profile.time_zone.clone();
+        fp.timezone_offset = profile.timezone_offset;
+        fp.summertime_offset = profile.summertime_offset;
+        fp.locale = profile.locale.clone();
+        fp.language = profile.language.clone();
+        fp.languages = profile.languages.clone();
+        fp.voice_language = profile.voice_language.clone();
+        fp.locale_date_string = profile.locale_date_string.clone();
         fp
     }
 
@@ -183,20 +271,53 @@ mod tests {
     const INIT: i64 = 1_778_379_452_408;
 
     #[test]
-    fn default_persona_matches_bundled_capture() {
-        // Applying the default persona changes nothing → byte-identical output.
+    fn default_profile_matches_bundled_capture() {
+        // Applying the default (en-US) profile changes nothing → byte-identical.
         let fp = chrome_148_macos();
-        let with = fp.with_persona(&Persona::default());
+        let with = fp.with_locale_profile(&LocaleProfile::default());
         assert_eq!(with.encode_fp(INIT, 17), fp.encode_fp(INIT, 17));
+        // The default also matches the en_us preset exactly.
+        assert_eq!(LocaleProfile::default(), LocaleProfile::en_us());
     }
 
     #[test]
-    fn locale_date_string_known_and_unknown() {
-        assert_eq!(
-            locale_date_string("en-US").as_deref(),
-            Some("3/1/1970, 12:00:00 AM")
-        );
+    fn locale_date_string_renders_each_locale() {
+        let cases = [
+            ("en-US", "3/1/1970, 12:00:00 AM"),
+            ("en-GB", "01/03/1970, 00:00:00"),
+            ("de-DE", "1.3.1970, 00:00:00"),
+            ("fr-FR", "01/03/1970 00:00:00"),
+            ("it-IT", "01/03/1970, 00:00:00"),
+            ("es-ES", "1/3/1970, 0:00:00"),
+            ("ja-JP", "1970/3/1 0:00:00"),
+        ];
+        for (locale, expected) in cases {
+            assert_eq!(locale_date_string(locale).as_deref(), Some(expected), "{locale}");
+        }
         assert_eq!(locale_date_string("zz-ZZ"), None);
+    }
+
+    #[test]
+    fn presets_are_consistent_and_distinct() {
+        let base = chrome_148_macos();
+        let tags = ["en-US", "en-GB", "de-DE", "fr-FR", "it-IT", "es-ES", "ja-JP"];
+        let mut seen = std::collections::HashSet::new();
+        for tag in tags {
+            let p = LocaleProfile::preset(tag).unwrap();
+            // The preset is self-consistent: locale tag and derived date agree.
+            assert_eq!(p.locale, tag);
+            assert_eq!(p.locale_date_string, locale_date_string(tag).unwrap());
+            assert_eq!(p.language, p.voice_language);
+            // Each preset produces a distinct fp_lists (except en-US == bundled).
+            let fp_lists = base.with_locale_profile(&p).encode_fp(INIT, 17);
+            if tag == "en-US" {
+                assert_eq!(fp_lists, base.encode_fp(INIT, 17));
+            } else {
+                assert_ne!(fp_lists, base.encode_fp(INIT, 17), "{tag} should differ");
+            }
+            assert!(seen.insert(fp_lists), "{tag} duplicated another preset");
+        }
+        assert!(LocaleProfile::preset("zz-ZZ").is_none());
     }
 
     #[test]
@@ -206,23 +327,14 @@ mod tests {
         let h = base.with_hostname("login.example.com");
         assert_eq!(h.hostname, "login.example.com");
 
-        let paris = Persona {
-            time_zone: "Europe/Paris".to_string(),
-            timezone_offset: -60,
-            summertime_offset: 60,
-            locale: "fr-FR".to_string(),
-            language: "fr-FR".to_string(),
-            languages: vec!["fr-FR".to_string(), "fr".to_string()],
-            voice_language: "fr-FR".to_string(),
-            locale_date_string: "01/03/1970 00:00:00".to_string(),
-        };
-        let fp = base.with_persona(&paris);
-        assert_eq!(fp.time_zone, "Europe/Paris");
-        assert_eq!(fp.locale, "fr-FR");
-        assert_eq!(fp.languages, vec!["fr-FR", "fr"]);
+        let de = base.with_locale_profile(&LocaleProfile::de_de());
+        assert_eq!(de.time_zone, "Europe/Berlin");
+        assert_eq!(de.locale, "de-DE");
+        assert_eq!(de.languages, vec!["de-DE", "de"]);
+        assert_eq!(de.locale_date_string, "1.3.1970, 00:00:00");
         // Device identity is untouched.
-        assert_eq!(fp.user_agent, base.user_agent);
-        assert_eq!(fp.webgl_renderer, base.webgl_renderer);
+        assert_eq!(de.user_agent, base.user_agent);
+        assert_eq!(de.webgl_renderer, base.webgl_renderer);
     }
 
     #[test]

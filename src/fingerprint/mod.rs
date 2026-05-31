@@ -7,7 +7,7 @@ mod part0;
 mod part4;
 mod part7;
 
-pub use context::{locale_date_string, Persona};
+pub use context::{locale_date_string, LocaleProfile};
 pub use devices::{bundled_devices, chrome_148_macos, load_devices, random_bundled_device};
 
 use serde::{Deserialize, Serialize};

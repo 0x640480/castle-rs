@@ -30,7 +30,7 @@ fn minted_token_decodes_to_expected_fields() {
             ig: IG,
             now_ms: Some(NOW),
             hostname: None,
-            persona: None,
+            locale_profile: None,
             jitter: false,
         },
         &mut rng,
