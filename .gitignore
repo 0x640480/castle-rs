@@ -1,0 +1,8 @@
+# Build artifacts
+/target
+
+# Third-party Go reference implementation — not part of this crate
+/reference
+
+# rustfmt backups
+**/*.rs.bk
