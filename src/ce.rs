@@ -82,15 +82,11 @@ pub const INPUT_TYPES: &[&str] = &[
     "select",
 ];
 
-/// Encodes events with the default header flag (0).
+/// Encodes events into the lowercase-hex `ce` blob. The 1-byte header flag is
+/// always 0; [`decode`] reads it back but no producer emits a non-zero value.
 pub fn encode(events: &[Event]) -> Result<String> {
-    encode_with_flag(events, 0)
-}
-
-/// Encodes events with a caller-supplied header flag. Returns lowercase hex.
-pub fn encode_with_flag(events: &[Event], zb: u8) -> Result<String> {
     let mut out = vec![
-        zb,
+        0,
         ((events.len() >> 8) & 0xFF) as u8,
         (events.len() & 0xFF) as u8,
     ];

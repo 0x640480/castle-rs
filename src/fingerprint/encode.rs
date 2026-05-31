@@ -50,6 +50,16 @@ pub fn case6(index: i64, input: f64) -> String {
     tag(index, 6) + &n_hex(v as u64, 2)
 }
 
+/// A fractional probe: Case 5 (integer, `round(x + 0.5)` toward zero) when
+/// `x > 25.5` would overflow Case 6's single byte, else Case 6 fixed-point.
+pub fn case5_or_6(index: i64, x: f64) -> String {
+    if x > 25.5 {
+        case5(index, (x + 0.5) as i64)
+    } else {
+        case6(index, x)
+    }
+}
+
 /// Case 7: a pre-encoded hex payload (caller owns the shape).
 pub fn case7(index: i64, hex_payload: &str) -> String {
     tag(index, 7) + hex_payload

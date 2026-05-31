@@ -1,6 +1,37 @@
 //! Part-4 field encoders and their lookup tables (fp_lists slots 4/0–4/30).
 
 use super::encode::*;
+use super::Fingerprint;
+
+/// Assembles every part-4 slot (4/0–4/30) into encoded order.
+pub(super) fn encode(fp: &Fingerprint, init: i64) -> Vec<String> {
+    vec![
+        always0(),
+        time_zone(&fp.time_zone, init),
+        languages(&fp.languages, init),
+        vendor_number(fp.vendor_number),
+        castle_runtime_flags(&fp.castle_runtime_flags),
+        to_fixed_err_len(fp.to_fixed_err_len),
+        bot_detection_flags(&fp.bot_detection_flags),
+        ua_platform_missing(fp.ua_platform_missing),
+        worker_integrity_flags(&fp.worker_integrity_flags),
+        browser_feature_flags(&fp.browser_feature_flags),
+        suspicious_environment(fp.suspicious_environment),
+        static01(&fp.static01_payload),
+        locale(&fp.locale, init),
+        window_dims(
+            fp.window_outer_width,
+            fp.window_inner_width,
+            fp.window_outer_height,
+            fp.window_inner_height,
+        ),
+        ua_high_entropy_empty(fp.ua_high_entropy_empty),
+        ua_high_entropy_flags(&fp.ua_high_entropy_flags),
+        ua_architecture(&fp.ua_architecture, init),
+        ua_model(&fp.ua_model, init),
+        ua_full_version(&fp.ua_full_version, init),
+    ]
+}
 
 pub const TIME_ZONE_LUT: &[&str] = &[
     "America/New_York",

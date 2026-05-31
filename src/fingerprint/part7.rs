@@ -1,6 +1,50 @@
 //! Part-7 field encoders and their lookup tables (fp_lists slots 7/0–7/30).
 
 use super::encode::*;
+use super::Fingerprint;
+
+/// Assembles every part-7 slot (7/0–7/30) into encoded order. `utc_minutes`
+/// feeds slot 7/4 and is supplied by the caller (see [`super::Fingerprint::encode_fp`]).
+pub(super) fn encode(fp: &Fingerprint, init: i64, utc_minutes: i64) -> Vec<String> {
+    vec![
+        ua_platform(&fp.ua_platform, init),
+        ua_platform_version(&fp.ua_platform_version, init),
+        browser_brand(&fp.browser_brand),
+        time_diff(fp.time_diff),
+        self::utc_minutes(utc_minutes),
+        hostname(&fp.hostname, init),
+        object_json(&fp.object_json, init),
+        bits46(&fp.bits46),
+        linux_font_count(fp.linux_font_count),
+        mac_font_count(fp.mac_font_count),
+        windows_font_count(fp.windows_font_count),
+        canvas_length(fp.canvas_fingerprinting_len),
+        navigation_timing(&fp.navigation_timing),
+        iframe_navigator_accessible(fp.iframe_navigator_accessible),
+        canvas_integrity_flags(&fp.canvas_integrity_flags),
+        canvas_error_message(&fp.canvas_error_message, init),
+        memory_info(&fp.memory_info),
+        screen_integrity_flags(&fp.screen_integrity_flags),
+        window_dims(
+            fp.window_inner_width7,
+            fp.window_outer_width7,
+            fp.window_inner_height7,
+            fp.window_outer_height7,
+        ),
+        avail_left_top(fp.avail_left, fp.avail_top),
+        screen_orientation(&fp.screen_orientation, init),
+        screen_orientation_angle(fp.screen_orientation_angle),
+        scroll_bar(fp.scroll_bar_width, fp.scroll_bar_height),
+        canvas_perf_ratio(fp.canvas_perf_ratio),
+        voice_language(&fp.voice_language, init),
+        voices_length(fp.voices_length),
+        local_voices_length(fp.local_voices_length),
+        google_voices_length(fp.google_voices_length),
+        voice_os(&fp.voice_os, init),
+        render_latency(fp.render_latency),
+        keyboard_hash(&fp.keyboard_hash, init),
+    ]
+}
 
 pub const UA_PLATFORM_LUT: &[&str] = &["Android", "iOS", "macOS", "Linux", "Windows", "Unknown"];
 
