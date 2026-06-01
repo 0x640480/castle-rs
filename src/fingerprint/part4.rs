@@ -5,10 +5,16 @@ use super::Fingerprint;
 
 /// Assembles every part-4 slot (4/0–4/30) into encoded order.
 pub(super) fn encode(fp: &Fingerprint, init: i64) -> Vec<String> {
-    vec![
+    let mut slots = vec![
         always0(),
         time_zone(&fp.time_zone, init),
         languages(&fp.languages, init),
+    ];
+    // Slot 4/5 is emitted only when a privacy blocker was detected.
+    if !fp.privacy_blocker_string.is_empty() {
+        slots.push(privacy_blocker_string(&fp.privacy_blocker_string, init));
+    }
+    slots.extend([
         vendor_number(fp.vendor_number),
         castle_runtime_flags(&fp.castle_runtime_flags),
         to_fixed_err_len(fp.to_fixed_err_len),
@@ -30,7 +36,8 @@ pub(super) fn encode(fp: &Fingerprint, init: i64) -> Vec<String> {
         ua_architecture(&fp.ua_architecture, init),
         ua_model(&fp.ua_model, init),
         ua_full_version(&fp.ua_full_version, init),
-    ]
+    ]);
+    slots
 }
 
 pub const TIME_ZONE_LUT: &[&str] = &[
@@ -66,6 +73,11 @@ pub fn time_zone(tz: &str, init: i64) -> String {
 pub fn languages(languages: &[String], init: i64) -> String {
     let joined = languages.join(",");
     encode_optional_index(2, index_of(LANGUAGES_LIST_LUT, &joined), &joined, init)
+}
+
+/// Slot 4/5: detected privacy-blocker string (XXTEA frame), e.g. "CanvasBlocker".
+pub fn privacy_blocker_string(s: &str, init: i64) -> String {
+    case4(5, s, init)
 }
 
 /// Slot 4/6: vendor probe number.
@@ -148,4 +160,20 @@ pub fn ua_model(model: &str, init: i64) -> String {
 /// Slot 4/30: UA-data uaFullVersion.
 pub fn ua_full_version(version: &str, init: i64) -> String {
     case4(30, version, init)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn privacy_blocker_matches_real_token() {
+        // Captured from a real X-Castle-Request-Token whose browser had the
+        // CanvasBlocker extension (init_time 1_778_821_459_505). The slot-5
+        // bytes our encoder produces must equal the genuine token's.
+        assert_eq!(
+            privacy_blocker_string("CanvasBlocker", 1_778_821_459_505),
+            "2c10b7ff6db0d93ca8920b139a2da8511515"
+        );
+    }
 }
