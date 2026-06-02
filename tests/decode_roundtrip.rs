@@ -69,13 +69,21 @@ fn minted_token_decodes_to_expected_fields() {
     let inner_xored = &xor1[12..];
     let inner_payload_plain = xor_with_rotated_key(inner_xored, v0, 4, &v0[3..4]);
 
-    // The inner payload begins with fp_lists; it must match encode_fp exactly.
-    // mint_fresh always applies the (required) hostname, so reproduce that here.
+    // The inner payload begins with fp_lists (parts 0/4/7/8/9); it must match
+    // encode_fp exactly. mint_fresh always applies the (required) hostname, so
+    // reproduce that here.
     let utc_minutes = (INIT / 60_000) % 60;
     let fp_lists = fp.with_hostname(HOST).encode_fp(INIT, utc_minutes);
     assert!(
         inner_payload_plain.starts_with(&fp_lists),
         "recovered inner payload does not start with the expected fp_lists"
+    );
+    // The `starts_with` above is self-consistent (both sides call `encode_fp`),
+    // so guard against parts 8/9 silently regressing to empty: the bundled
+    // profile must populate them, and they ride through the full pipeline here.
+    assert!(
+        !fp.part8.is_empty() && !fp.part9.is_empty(),
+        "bundled profile dropped the ExtraSlot parts 8/9"
     );
     // ...and ends with the 'ff' terminator.
     assert!(inner_payload_plain.ends_with("ff"), "missing ff terminator");
