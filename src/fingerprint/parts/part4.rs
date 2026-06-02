@@ -1,7 +1,11 @@
-//! Part-4 field encoders and their lookup tables (fp_lists slots 4/0–4/30).
+//! Part 4 (wire id 4): runtime, locale, and bot/automation detection (slots
+//! 4/0–4/30) — IANA timezone, `navigator.languages`, privacy-blocker string,
+//! Castle runtime/feature flags, bot-detection & worker-integrity probes,
+//! `Intl` locale, window dimensions, and UA-Client-Hints architecture/model/
+//! full-version.
 
-use super::encode::*;
-use super::Fingerprint;
+use super::super::encode::*;
+use super::super::Fingerprint;
 
 /// Assembles every part-4 slot (4/0–4/30) into encoded order.
 pub(super) fn encode(fp: &Fingerprint, init: i64) -> Vec<String> {

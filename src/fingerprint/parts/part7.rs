@@ -1,7 +1,10 @@
-//! Part-7 field encoders and their lookup tables (fp_lists slots 7/0–7/30).
+//! Part 7 (wire id 7): advanced probes (slots 7/0–7/30) — UA-data platform/
+//! brand, hostname, OS font counts, canvas fingerprint & integrity, navigation
+//! timing, JS heap, screen/window geometry & orientation, scrollbars,
+//! speech-synthesis voices, and the keyboard-layout hash.
 
-use super::encode::*;
-use super::Fingerprint;
+use super::super::encode::*;
+use super::super::Fingerprint;
 
 /// Assembles every part-7 slot (7/0–7/30) into encoded order. `utc_minutes`
 /// feeds slot 7/4 and is supplied by the caller (see [`super::Fingerprint::encode_fp`]).

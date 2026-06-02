@@ -1,13 +1,15 @@
-//! Parts 8 & 9: additional UA-Client-Hints / WebGL / platform probes.
+//! Parts 8 & 9 (wire ids 8, 9): additional UA-Client-Hints / WebGL / platform
+//! detail — GPU vendor & renderer, the full user agent, architecture/bitness/
+//! model, Chrome full version, and the UA-CH brand list.
 //!
-//! These parts are reproduced slot-by-slot from captured values. Case-4 slots
-//! carry an XXTEA frame keyed on `init_time`, so they store the **plaintext**
-//! and re-encrypt per mint; every other case is init-independent and replays
-//! its raw payload verbatim.
+//! Unlike parts 0/4/7 these have no bespoke per-slot encoders; each slot is
+//! reproduced generically via [`ExtraSlot`]. Case-4 slots carry an XXTEA frame
+//! keyed on `init_time`, so they store the **plaintext** and re-encrypt per
+//! mint; every other case is init-independent and replays its raw payload.
 
 use serde::{Deserialize, Serialize};
 
-use super::encode::{case4, tag};
+use super::super::encode::{case4, tag};
 
 /// One part-8/9 slot.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
