@@ -6,9 +6,11 @@ mod encode;
 mod part0;
 mod part4;
 mod part7;
+mod part89;
 
 pub use context::{locale_date_string, LocaleProfile};
 pub use devices::{bundled_devices, chrome_148_macos, load_devices, random_bundled_device};
+pub use part89::ExtraSlot;
 
 use serde::{Deserialize, Serialize};
 
@@ -136,6 +138,13 @@ pub struct Fingerprint {
     pub render_latency: i64,               // (7/29)
     pub keyboard_hash: String,             // (7/30)
 
+    /// Part 8: UA-Client-Hints / WebGL / platform probe slots.
+    #[serde(default)]
+    pub part8: Vec<ExtraSlot>,
+    /// Part 9: UA-CH brand list and platform detail slots.
+    #[serde(default)]
+    pub part9: Vec<ExtraSlot>,
+
     /// Typed `ce` events; when `None`, [`Fingerprint::default_ce_hex`] is used
     /// verbatim instead.
     #[serde(default, rename = "DefaultCEEvents")]
@@ -160,8 +169,8 @@ impl Fingerprint {
             part0::encode(self, init),
             part4::encode(self, init),
             part7::encode(self, init, utc_minutes),
-            Vec::new(),
-            Vec::new(),
+            part89::encode(&self.part8, init),
+            part89::encode(&self.part9, init),
         ])
     }
 
