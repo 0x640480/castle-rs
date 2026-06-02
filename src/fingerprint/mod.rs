@@ -60,23 +60,27 @@ pub struct Fingerprint {
     pub can_play_type: Vec<i64>,           // (0/31)
 
     // --- Part 4 ---
-    pub time_zone: String,               // (4/1)
-    pub languages: Vec<String>,          // (4/2)
-    pub vendor_number: i64,              // (4/6)
+    pub time_zone: String,      // (4/1)
+    pub languages: Vec<String>, // (4/2)
+    /// Detected privacy blocker(s), e.g. `"CanvasBlocker"` (slot 4/5). Emitted
+    /// only when non-empty — a clean browser sends nothing here.
+    #[serde(default)]
+    pub privacy_blocker_string: String, // (4/5)
+    pub vendor_number: i64,     // (4/6)
     pub castle_runtime_flags: Vec<bool>, // (4/10)
-    pub to_fixed_err_len: i64,           // (4/12)
-    pub bot_detection_flags: Vec<bool>,  // (4/13)
+    pub to_fixed_err_len: i64,  // (4/12)
+    pub bot_detection_flags: Vec<bool>, // (4/13)
     #[serde(rename = "UAPlatformMissing")]
     pub ua_platform_missing: bool, // (4/14)
     pub worker_integrity_flags: Vec<bool>, // (4/16)
     pub browser_feature_flags: Vec<bool>, // (4/17)
-    pub suspicious_environment: bool,    // (4/18)
-    pub static01_payload: String,        // (4/21)
-    pub locale: String,                  // (4/22)
-    pub window_outer_width: i64,         // (4/24)
-    pub window_inner_width: i64,         // (4/24)
-    pub window_outer_height: i64,        // (4/24)
-    pub window_inner_height: i64,        // (4/24)
+    pub suspicious_environment: bool, // (4/18)
+    pub static01_payload: String, // (4/21)
+    pub locale: String,         // (4/22)
+    pub window_outer_width: i64, // (4/24)
+    pub window_inner_width: i64, // (4/24)
+    pub window_outer_height: i64, // (4/24)
+    pub window_inner_height: i64, // (4/24)
     #[serde(rename = "UAHighEntropyEmpty")]
     pub ua_high_entropy_empty: bool, // (4/26)
     #[serde(rename = "UAHighEntropyFlags")]
