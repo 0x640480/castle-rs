@@ -47,7 +47,10 @@ You supply:
   deliberately not bundled in the fingerprint, so every mint must supply it.
 
 `fp_lists` and `ce` are rendered fresh per call from the fingerprint's typed
-traits. Per-mint variation (the per-slot XXTEA ciphertexts keyed on
+traits. `fp_lists` spans five parts — basic browser traits (part 0), runtime /
+UA-data probes (parts 4 and 7), and UA-Client-Hints / WebGL / platform detail
+(parts 8 and 9); the part-8/9 case-4 fields are XXTEA frames re-encrypted on
+every mint. Per-mint variation (the per-slot XXTEA ciphertexts keyed on
 `init_time_ms`, the time tokens, the mask byte, and one e7 counter) is driven by
 the supplied RNG; pass your own via [`token::mint_fresh`] for reproducible
 output in tests.
@@ -104,7 +107,7 @@ cargo run -- \
 | Module | Purpose |
 |---|---|
 | `token` | Mint the `X-Castle-Request-Token` (public entry point). |
-| `fingerprint` | Typed browser-identity bundle + per-slot fp_lists encoders, plus `LocaleProfile` presets and the per-mint jitter pass. Embeds `devices.json`. |
+| `fingerprint` | Typed browser-identity bundle + per-slot fp_lists encoders (parts 0/4/7 plus the `ExtraSlot` parts 8/9), `LocaleProfile` presets, and the per-mint jitter pass. Embeds `devices.json`. |
 | `ce` | Typed encoder/decoder for the header-less `ce` event-stream blob. |
 | `events` | `e7` (yh / hg / Fg) events generator. |
 | `codec` | base64url + MurmurHash3 x86_32 + `n_hex` helper. |
@@ -114,5 +117,6 @@ cargo run -- \
 
 `cargo test` runs golden vectors that lock the wire format —
 the XXTEA / MurmurHash3 / base64url primitives, the `encode_token` SHA-256 gate,
-the `encode_fp` / `encode_ce` fingerprint goldens — plus an end-to-end decode
-round-trip that reverses a minted token and checks the embedded fields.
+the `encode_fp` / `encode_ce` fingerprint goldens, and a real-token vector that
+reproduces parts 8/9 byte-for-byte — plus an end-to-end decode round-trip that
+reverses a minted token and checks the embedded fields.
