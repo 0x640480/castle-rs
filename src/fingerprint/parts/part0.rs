@@ -1,7 +1,10 @@
-//! Part-0 field encoders and their lookup tables (fp_lists slots 0/0–0/31).
+//! Part 0 (wire id 0): the core browser identity (slots 0/0–0/31) — navigator
+//! platform/vendor/language, device memory, screen geometry, hardware
+//! concurrency, timezone, mime types & plugins, user agent, canvas hashes,
+//! WebGL renderer, and the automation / recursion-error probes.
 
-use super::encode::*;
-use super::Fingerprint;
+use super::super::encode::*;
+use super::super::Fingerprint;
 
 /// Assembles every part-0 slot (0/0–0/31) into encoded order.
 pub(super) fn encode(fp: &Fingerprint, init: i64) -> Vec<String> {

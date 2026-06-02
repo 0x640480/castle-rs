@@ -3,14 +3,11 @@
 mod context;
 mod devices;
 mod encode;
-mod part0;
-mod part4;
-mod part7;
-mod part89;
+mod parts;
 
 pub use context::{locale_date_string, LocaleProfile};
 pub use devices::{bundled_devices, chrome_148_macos, load_devices, random_bundled_device};
-pub use part89::ExtraSlot;
+pub use parts::ExtraSlot;
 
 use serde::{Deserialize, Serialize};
 
@@ -164,14 +161,7 @@ impl Fingerprint {
     /// `new Date(init_time).getUTCMinutes()` probe (slot 7/4), computed by the
     /// caller so this method stays dependency-free.
     pub fn encode_fp(&self, init_time_ms: i64, utc_minutes: i64) -> String {
-        let init = init_time_ms;
-        encode::encode_lists(&[
-            part0::encode(self, init),
-            part4::encode(self, init),
-            part7::encode(self, init, utc_minutes),
-            part89::encode(&self.part8, init),
-            part89::encode(&self.part9, init),
-        ])
+        parts::fp_lists(self, init_time_ms, utc_minutes)
     }
 
     /// Renders the `ce` hex blob: typed events via [`ce::encode`] when present,
