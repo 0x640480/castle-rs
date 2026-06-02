@@ -113,6 +113,7 @@
       "en-US",
       "en"
     ],
+    "PrivacyBlockerString": "CanvasBlocker",
     "VendorNumber": 6,
     "CastleRuntimeFlags": [
       true,
