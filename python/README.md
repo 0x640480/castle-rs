@@ -40,32 +40,3 @@ A runnable script is in [`examples/mint_token.py`](examples/mint_token.py) —
 ```sh
 cd python && maturin develop      # or: pip install .
 ```
-
-## Releasing to PyPI (maintainers)
-
-Wheels + sdist are built and published by
-[`.github/workflows/python-release.yml`](../.github/workflows/python-release.yml)
-on a `vX.Y.Z` tag, via **PyPI Trusted Publishing** (OIDC — no API token stored).
-
-One-time setup at <https://pypi.org/manage/account/publishing/> — add a *pending*
-publisher (works before the project exists):
-
-| Field | Value |
-|---|---|
-| PyPI project name | `castle-token` |
-| Owner | `0x640480` |
-| Repository | `castle-rs` |
-| Workflow name | `python-release.yml` |
-| Environment | `pypi` |
-
-Then create a GitHub environment named `pypi` (repo **Settings → Environments**);
-add manual-approval reviewers there if you want a release gate.
-
-To cut a release: bump `version` in [`python/Cargo.toml`](Cargo.toml) (the wheel
-version is `dynamic`, read from it), commit, then:
-
-```sh
-git tag vX.Y.Z && git push origin vX.Y.Z
-```
-
-`workflow_dispatch` runs the same build matrix without publishing, for a dry run.
