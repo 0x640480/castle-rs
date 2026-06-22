@@ -5,11 +5,12 @@ edition = "2021"
 description = "Generator for the X-Castle-Request-Token header minted by Castle's web SDK."
 license = "MIT"
 
-# The Python binding (PyO3) lives in `python/` as a workspace member. Bare cargo
-# commands default to the core crate so the Rust toolchain never has to build
-# the cdylib (which needs a Python interpreter) — see default-members.
+# The language bindings live in `python/` (PyO3) and `node/` (napi-rs) as
+# workspace members. Bare cargo commands default to the core crate so the Rust
+# toolchain never has to build the cdylibs (built instead by maturin / the napi
+# CLI, which know how to link against their interpreters) — see default-members.
 [workspace]
-members = ["python"]
+members = ["python", "node"]
 resolver = "2"
 default-members = ["."]
 

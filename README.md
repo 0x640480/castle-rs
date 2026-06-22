@@ -126,6 +126,31 @@ token = ct.mint_token(
 Also exposes `Fingerprint.chrome_148_macos()`, `load_devices(path)`,
 `random_bundled_device()`, the `LocaleProfile` presets, and `CastleError`.
 
+## JavaScript / Node
+
+A non-WASM native addon ([napi-rs](https://napi.rs)) lives in [`node/`](node/) as
+a workspace member — `require('castle-token')` loads a compiled `.node`, reusing
+the same tested core. Build it with the napi CLI:
+
+```sh
+cd node && npm install && npm run build
+```
+```js
+const ct = require('castle-token')
+
+const token = ct.mintToken(
+  '00112233445566778899aabbccddeeff', // cuid
+  'pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', // pk
+  225, // ig
+  'id.example.com', // hostname
+  ct.Fingerprint.chrome148Macos(), // optional
+  ct.LocaleProfile.preset('de-DE'), // optional
+  true, // jitter (optional)
+)
+```
+Also exposes `loadDevices(path)`, `randomBundledDevice()`, and the
+`LocaleProfile` presets. Names are camelCased; invalid input throws.
+
 ## Modules
 
 | Module | Purpose |

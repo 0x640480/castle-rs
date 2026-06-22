@@ -20,3 +20,8 @@ __pycache__/
 dist/
 *.egg-info/
 .venv/
+
+# Node binding build artifacts (the per-platform .node is built, not committed;
+# the generated index.js / index.d.ts loader + types ARE committed)
+node_modules/
+*.node
