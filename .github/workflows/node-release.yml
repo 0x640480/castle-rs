@@ -1,0 +1,234 @@
+name: Node release
+
+# Cross-arch prebuilt-binary pipeline for the `castle-token` npm package.
+#
+# Triggered by a `vX.Y.Z` tag: builds the addon for every target in
+# node/package.json `napi.targets`, runs the binaries on real OS/arch matrices,
+# then publishes the main package + the per-platform `optionalDependencies`
+# packages so `npm i castle-token` pulls a prebuilt .node with no Rust toolchain.
+#
+# `workflow_dispatch` runs build + test only (no publish) for dry-runs.
+#
+# Release process:
+#   1. set the SAME version in node/package.json `version` AND all 8
+#      `optionalDependencies` entries — they must match exactly. (`napi version`
+#      updates the npm/<platform>/ packages but NOT the root optionalDependencies,
+#      so bump those by hand or with a script.)
+#   2. commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+# Requires a repo secret `NPM_TOKEN` that is an npm **Automation** token — a
+# classic/granular token fails publish with EOTP when the account has 2FA. The
+# publish job fail-fasts if the tag/version disagree or npm auth is missing.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  APP_NAME: castle-token
+  DEBUG: napi:*
+
+defaults:
+  run:
+    working-directory: node
+
+jobs:
+  build:
+    name: build ${{ matrix.settings.target }}
+    runs-on: ${{ matrix.settings.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            build: npm run build -- --target x86_64-unknown-linux-gnu --use-napi-cross
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            build: npm run build -- --target x86_64-unknown-linux-musl -x
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            build: npm run build -- --target aarch64-unknown-linux-gnu --use-napi-cross
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            build: npm run build -- --target aarch64-unknown-linux-musl -x
+          - host: macos-latest
+            target: x86_64-apple-darwin
+            build: npm run build -- --target x86_64-apple-darwin
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            build: npm run build -- --target aarch64-apple-darwin
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            build: npm run build -- --target x86_64-pc-windows-msvc
+          - host: windows-latest
+            target: aarch64-pc-windows-msvc
+            build: npm run build -- --target aarch64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: node/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.settings.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          key: ${{ matrix.settings.target }}
+      # musl targets cross-compile via cargo-zigbuild (`-x`); gnu targets use the
+      # napi cross-toolchain (`--use-napi-cross`), which the CLI fetches itself.
+      - uses: mlugg/setup-zig@v2
+        if: ${{ contains(matrix.settings.target, 'musl') }}
+        with:
+          version: 0.14.1
+      - uses: taiki-e/install-action@v2
+        if: ${{ contains(matrix.settings.target, 'musl') }}
+        with:
+          tool: cargo-zigbuild
+      - run: npm ci
+      - name: Build
+        run: ${{ matrix.settings.build }}
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          # path is repo-root-relative (not working-directory); the wildcard's
+          # common ancestor (node/) is stripped, so the artifact holds the bare
+          # castle-token.<target>.node, which the test job's `path: node` places
+          # back at node/ for the local-first loader.
+          path: node/${{ env.APP_NAME }}.*.node
+          if-no-files-found: error
+
+  test-macos-windows:
+    name: test ${{ matrix.settings.target }} - node@${{ matrix.node }}
+    needs: build
+    runs-on: ${{ matrix.settings.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            architecture: arm64
+          - host: macos-latest
+            target: x86_64-apple-darwin
+            architecture: x64
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            architecture: x64
+          - host: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            architecture: arm64
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          architecture: ${{ matrix.settings.architecture }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: node
+      - run: node --test
+
+  test-linux:
+    name: test ${{ matrix.target }} - node@${{ matrix.node }}
+    needs: build
+    runs-on: ${{ contains(matrix.target, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-musl
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: node
+      # gnu binaries run on the host's Node directly; musl ones run in an Alpine
+      # container. arm64 targets use the native ubuntu-24.04-arm runner (no QEMU).
+      - name: Test (gnu, native)
+        if: ${{ !contains(matrix.target, 'musl') }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Test (gnu, native)
+        if: ${{ !contains(matrix.target, 'musl') }}
+        run: node --test
+      - name: Test (musl, Alpine container)
+        if: ${{ contains(matrix.target, 'musl') }}
+        uses: addnab/docker-run-action@v3
+        with:
+          image: node:${{ matrix.node }}-alpine
+          options: -v ${{ github.workspace }}:/work -w /work/node
+          run: node --test
+
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    needs:
+      - test-macos-windows
+      - test-linux
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    permissions:
+      contents: write # napi prepublish creates a GitHub release + uploads .node assets
+      id-token: write # npm provenance
+    env:
+      # job-level so the version guard, `npm whoami`, the root publish, and the
+      # per-platform publishes napi prepublish spawns all see the token.
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: node/package-lock.json
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: Verify tag matches package + optionalDependencies versions
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF" != "refs/tags/v$PKG" ]; then
+            echo "::error::tag $GITHUB_REF does not match package.json v$PKG"; exit 1
+          fi
+          node -e "const p=require('./package.json');const bad=Object.entries(p.optionalDependencies).filter(([,v])=>v!==p.version);if(bad.length){console.error('optionalDependencies out of sync with '+p.version+':',bad);process.exit(1)}"
+        shell: bash
+      - name: Verify npm auth (must be an automation token)
+        run: npm whoami
+      - name: Recreate per-platform npm package dirs
+        run: npx napi create-npm-dirs
+      - uses: actions/download-artifact@v4
+        with:
+          path: node/artifacts
+      - name: Move .node files into npm/<platform>/
+        run: npm run artifacts # napi artifacts --output-dir artifacts
+      - name: Assert every platform binary is present (1 per target)
+        run: |
+          count=$(ls npm/*/${{ env.APP_NAME }}.*.node | wc -l)
+          echo "found $count platform binaries"
+          test "$count" -eq 8 || { echo "::error::expected 8 platform binaries, found $count"; exit 1; }
+        shell: bash
+      - name: List packages
+        run: ls -R npm
+        shell: bash
+      - name: Publish
+        # `npm publish` runs prepublishOnly (`napi prepublish -t npm`), which
+        # publishes each per-platform package + a GitHub release, then publishes
+        # the main package.
+        run: |
+          npm config set provenance true
+          npm publish --access public
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
