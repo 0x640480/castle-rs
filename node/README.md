@@ -33,6 +33,11 @@ const token = ct.mintToken(
 - `LocaleProfile.preset(tag)` / `.enUs()` / `.deDe()` / … / `.create(...)`
 - Invalid input throws an `Error`.
 
+## Example
+
+A runnable script is in [`examples/mint-token.js`](examples/mint-token.js) —
+`node examples/mint-token.js`.
+
 ## Build from source
 
 ```sh
