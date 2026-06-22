@@ -1,0 +1,24 @@
+{
+  "name": "castle-token-darwin-arm64",
+  "version": "0.1.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "castle-token.darwin-arm64.node",
+  "files": [
+    "castle-token.darwin-arm64.node"
+  ],
+  "description": "Generate the X-Castle-Request-Token header minted by Castle's web SDK — a native Node addon over the Rust core.",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0x640480/castle-rs.git",
+    "directory": "node"
+  },
+  "os": [
+    "darwin"
+  ]
+}

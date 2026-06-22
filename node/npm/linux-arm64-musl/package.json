@@ -1,0 +1,27 @@
+{
+  "name": "castle-token-linux-arm64-musl",
+  "version": "0.1.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "castle-token.linux-arm64-musl.node",
+  "files": [
+    "castle-token.linux-arm64-musl.node"
+  ],
+  "description": "Generate the X-Castle-Request-Token header minted by Castle's web SDK — a native Node addon over the Rust core.",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0x640480/castle-rs.git",
+    "directory": "node"
+  },
+  "os": [
+    "linux"
+  ],
+  "libc": [
+    "musl"
+  ]
+}

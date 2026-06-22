@@ -1,0 +1,23 @@
+[package]
+name = "castle-token-node"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+# Native Node addon (loaded by `require()` as a .node file). doctest disabled —
+# this crate is FFI glue, not a library with runnable doc examples.
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+castle-token = { path = ".." }
+rand = "0.8"
+# napi 3.x to match @napi-rs/cli v3 (the typedef/JS-binding protocol is keyed to
+# the crate major). napi-build stays 2.x — there is no 3.x, and it is just the
+# build.rs setup shim.
+napi = { version = "3", default-features = false, features = ["napi8"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"
