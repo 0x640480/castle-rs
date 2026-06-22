@@ -67,8 +67,8 @@ jobs:
             target: aarch64-pc-windows-msvc
             build: npm run build -- --target aarch64-pc-windows-msvc
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
@@ -94,7 +94,7 @@ jobs:
       - name: Build
         run: ${{ matrix.settings.build }}
         shell: bash
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bindings-${{ matrix.settings.target }}
           # path is repo-root-relative (not working-directory); the wildcard's
@@ -126,12 +126,12 @@ jobs:
             architecture: arm64
         node: ['22', '24']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.settings.architecture }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: bindings-${{ matrix.settings.target }}
           path: node
@@ -151,8 +151,8 @@ jobs:
           - aarch64-unknown-linux-musl
         node: ['22', '24']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: bindings-${{ matrix.target }}
           path: node
@@ -160,7 +160,7 @@ jobs:
       # container. arm64 targets use the native ubuntu-24.04-arm runner (no QEMU).
       - name: Test (gnu, native)
         if: ${{ !contains(matrix.target, 'musl') }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - name: Test (gnu, native)
@@ -189,8 +189,8 @@ jobs:
       # per-platform publishes napi prepublish spawns all see the token.
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
@@ -209,7 +209,7 @@ jobs:
         run: npm whoami
       - name: Recreate per-platform npm package dirs
         run: npx napi create-npm-dirs
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: node/artifacts
       - name: Move .node files into npm/<platform>/
