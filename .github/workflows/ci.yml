@@ -20,5 +20,7 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test --all
+        # Scope clippy/test to the core crate so this Rust-only job never builds
+        # the PyO3 cdylib (which needs a Python interpreter) — see python.yml.
+      - run: cargo clippy -p castle-token --all-targets -- -D warnings
+      - run: cargo test -p castle-token

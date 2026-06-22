@@ -1,0 +1,22 @@
+[package]
+name = "castle-token-py"
+version = "0.1.0"
+edition = "2021"
+description = "Python bindings for castle-token (X-Castle-Request-Token generator)."
+license = "MIT"
+publish = false
+
+[lib]
+# The compiled extension module; the Python facade re-exports it.
+name = "_castle_token"
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+castle-token = { path = ".." }
+rand = "0.8"
+pyo3 = { version = "0.24", features = [
+    "extension-module",
+    "abi3-py39",
+    "generate-import-lib",
+] }

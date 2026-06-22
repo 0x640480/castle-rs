@@ -11,3 +11,12 @@
 
 # Reverse-engineering artifact (downloaded Castle bundle)
 /bundle.js
+
+# Python binding build artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+*.so
+dist/
+*.egg-info/
+.venv/

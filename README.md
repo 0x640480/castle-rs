@@ -102,6 +102,30 @@ cargo run -- \
 [`LocaleProfile`] presets) and `--jitter` are optional and map to the
 `MintOptions` fields above.
 
+## Python
+
+A thin [PyO3](https://pyo3.rs) binding lives in [`python/`](python/) as a Cargo
+workspace member — it reuses this exact tested core (no separate port). Build it
+with [maturin](https://www.maturin.rs):
+
+```sh
+cd python && maturin develop      # or: pip install .
+```
+```python
+import castle_token as ct
+
+token = ct.mint_token(
+    cuid="00112233445566778899aabbccddeeff",
+    pk="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    ig=225,
+    hostname="id.example.com",
+    locale_profile=ct.LocaleProfile.preset("de-DE"),  # optional
+    jitter=True,                                       # optional
+)
+```
+Also exposes `Fingerprint.chrome_148_macos()`, `load_devices(path)`,
+`random_bundled_device()`, the `LocaleProfile` presets, and `CastleError`.
+
 ## Modules
 
 | Module | Purpose |

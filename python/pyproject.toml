@@ -1,0 +1,28 @@
+[build-system]
+requires = ["maturin>=1.5,<2"]
+build-backend = "maturin"
+
+[project]
+name = "castle-token"
+description = "Generate the X-Castle-Request-Token header minted by Castle's web SDK."
+requires-python = ">=3.9"
+license = { text = "MIT" }
+readme = "README.md"
+dynamic = ["version"]
+keywords = ["castle", "fingerprint", "token", "antibot"]
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "castle_token._castle_token"
