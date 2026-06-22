@@ -40,8 +40,8 @@ jobs:
       matrix:
         target: [x86_64, aarch64]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
       - name: Build wheel
@@ -51,7 +51,7 @@ jobs:
           args: ${{ env.MATURIN_ARGS }}
           manylinux: auto
           sccache: 'true'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-manylinux-${{ matrix.target }}
           path: dist
@@ -64,8 +64,8 @@ jobs:
       matrix:
         target: [x86_64, aarch64]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
       - name: Build wheel
@@ -75,7 +75,7 @@ jobs:
           args: ${{ env.MATURIN_ARGS }}
           manylinux: musllinux_1_2
           sccache: 'true'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-musllinux-${{ matrix.target }}
           path: dist
@@ -92,8 +92,8 @@ jobs:
           - runner: macos-latest
             target: aarch64
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
       - name: Build wheel
@@ -102,7 +102,7 @@ jobs:
           target: ${{ matrix.target }}
           args: ${{ env.MATURIN_ARGS }}
           sccache: 'true'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-macos-${{ matrix.target }}
           path: dist
@@ -111,8 +111,8 @@ jobs:
     name: wheel windows-x64
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.x'
           architecture: x64
@@ -122,7 +122,7 @@ jobs:
           target: x64
           args: ${{ env.MATURIN_ARGS }}
           sccache: 'true'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-windows-x64
           path: dist
@@ -131,13 +131,13 @@ jobs:
     name: sdist
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
           args: --out dist --manifest-path python/Cargo.toml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-sdist
           path: dist
@@ -155,7 +155,7 @@ jobs:
       attestations: write # PEP 740 attestations
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify tag matches python/Cargo.toml version
         # the wheel version is `dynamic` (maturin reads python/Cargo.toml); guard
         # against a tag that disagrees, which would publish a stale version.
@@ -165,7 +165,7 @@ jobs:
             echo "::error::tag $GITHUB_REF does not match python/Cargo.toml v$VER"; exit 1
           fi
         shell: bash
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           # merge every wheels-* artifact into a single flat dist/ directory
           pattern: wheels-*
