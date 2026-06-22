@@ -5,6 +5,14 @@ edition = "2021"
 description = "Generator for the X-Castle-Request-Token header minted by Castle's web SDK."
 license = "MIT"
 
+# The Python binding (PyO3) lives in `python/` as a workspace member. Bare cargo
+# commands default to the core crate so the Rust toolchain never has to build
+# the cdylib (which needs a Python interpreter) — see default-members.
+[workspace]
+members = ["python"]
+resolver = "2"
+default-members = ["."]
+
 [lib]
 name = "castle_token"
 path = "src/lib.rs"
