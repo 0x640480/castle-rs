@@ -30,6 +30,11 @@ token = ct.mint_token(
 - `LocaleProfile.preset(tag)` / `.en_us()` / `.de_de()` / … / `.new(...)`
 - Errors raise `CastleError`.
 
+## Example
+
+A runnable script is in [`examples/mint_token.py`](examples/mint_token.py) —
+`python examples/mint_token.py`.
+
 ## Build from source
 
 ```sh
