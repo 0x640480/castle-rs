@@ -105,11 +105,11 @@ cargo run -- \
 ## Python
 
 A thin [PyO3](https://pyo3.rs) binding lives in [`python/`](python/) as a Cargo
-workspace member — it reuses this exact tested core (no separate port). Build it
-with [maturin](https://www.maturin.rs):
+workspace member — it reuses this exact tested core (no separate port). Install
+the prebuilt `abi3` wheel (CPython ≥ 3.9, no Rust needed) or build from source:
 
 ```sh
-cd python && maturin develop      # or: pip install .
+pip install castle-token          # or, from source: cd python && maturin develop
 ```
 ```python
 import castle_token as ct
